@@ -22,3 +22,15 @@ uses
     SysUtils,
     Classes,
     fphttpclient;
+
+var
+    { API url to evaluate (http only) }
+    Url: string;
+    { HTTP request result }
+    Res: string;
+
+begin
+    writeLn('Hola API');
+end.
+
+
