@@ -2,7 +2,7 @@
 name=papi-two
 version=0.0.1
 
-[target]
-units=papitwo
-
 [default]
+
+[compiler]
+options=-o3
