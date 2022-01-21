@@ -334,6 +334,9 @@ endif
 endif
 override PACKAGE_NAME=papi-two
 override PACKAGE_VERSION=0.0.1
+ifeq ($(FULL_TARGET),x86_64-linux)
+override TARGET_UNITS+=papitwo
+endif
 ifdef REQUIRE_UNITSDIR
 override UNITSDIR+=$(REQUIRE_UNITSDIR)
 endif
@@ -999,6 +1002,48 @@ else
 TAROPT=vz
 TAREXT=.tar.gz
 endif
+override REQUIRE_PACKAGES=rtl 
+ifeq ($(FULL_TARGET),x86_64-linux)
+REQUIRE_PACKAGES_RTL=1
+endif
+ifdef REQUIRE_PACKAGES_RTL
+PACKAGEDIR_RTL:=$(firstword $(subst /Makefile.fpc,,$(strip $(wildcard $(addsuffix /rtl/Makefile.fpc,$(PACKAGESDIR))))))
+ifneq ($(PACKAGEDIR_RTL),)
+ifneq ($(wildcard $(PACKAGEDIR_RTL)/units/$(TARGETSUFFIX)),)
+UNITDIR_RTL=$(PACKAGEDIR_RTL)/units/$(TARGETSUFFIX)
+else
+UNITDIR_RTL=$(PACKAGEDIR_RTL)
+endif
+ifneq ($(wildcard $(PACKAGEDIR_RTL)/units/$(SOURCESUFFIX)),)
+UNITDIR_FPMAKE_RTL=$(PACKAGEDIR_RTL)/units/$(SOURCESUFFIX)
+else
+ifneq ($(wildcard $(PACKAGEDIR_RTL)/units_bs/$(SOURCESUFFIX)),)
+UNITDIR_FPMAKE_RTL=$(PACKAGEDIR_RTL)/units_bs/$(SOURCESUFFIX)
+else
+UNITDIR_FPMAKE_RTL=$(PACKAGEDIR_RTL)
+endif
+endif
+ifdef CHECKDEPEND
+$(PACKAGEDIR_RTL)/$(OS_TARGET)/$(FPCMADE):
+	$(MAKE) -C $(PACKAGEDIR_RTL)/$(OS_TARGET) $(FPCMADE)
+override ALLDEPENDENCIES+=$(PACKAGEDIR_RTL)/$(OS_TARGET)/$(FPCMADE)
+endif
+else
+PACKAGEDIR_RTL=
+UNITDIR_RTL:=$(subst /Package.fpc,,$(strip $(wildcard $(addsuffix /rtl/Package.fpc,$(UNITSDIR)))))
+ifneq ($(UNITDIR_RTL),)
+UNITDIR_RTL:=$(firstword $(UNITDIR_RTL))
+else
+UNITDIR_RTL=
+endif
+endif
+ifdef UNITDIR_RTL
+override COMPILER_UNITDIR+=$(UNITDIR_RTL)
+endif
+ifdef UNITDIR_FPMAKE_RTL
+override COMPILER_FPMAKE_UNITDIR+=$(UNITDIR_FPMAKE_RTL)
+endif
+endif
 ifndef NOCPUDEF
 override FPCOPTDEF=$(ARCH)
 endif
@@ -1155,9 +1200,92 @@ else
 EXECPPAS:=@$(PPAS)
 endif
 endif
+.PHONY: fpc_units
+ifneq ($(TARGET_UNITS)$(TARGET_IMPLICITUNITS),)
+override ALLTARGET+=fpc_units
+override UNITPPUFILES=$(addsuffix $(PPUEXT),$(TARGET_UNITS))
+override IMPLICITUNITPPUFILES=$(addsuffix $(PPUEXT),$(TARGET_IMPLICITUNITS))
+override INSTALLPPUFILES+=$(UNITPPUFILES) $(IMPLICITUNITPPUFILES)
+override CLEANPPUFILES+=$(UNITPPUFILES) $(IMPLICITUNITPPUFILES)
+endif
+fpc_units: $(COMPILER_UNITTARGETDIR) $(UNITPPUFILES)
 ifdef TARGET_RSTS
 override RSTFILES=$(addsuffix $(RSTEXT),$(TARGET_RSTS))
 override CLEANRSTFILES+=$(RSTFILES)
+endif
+.PHONY: fpc_all fpc_smart fpc_debug fpc_release fpc_shared
+$(FPCMADE): $(ALLDEPENDENCIES) $(ALLTARGET)
+	@$(ECHOREDIR) Compiled > $(FPCMADE)
+fpc_all: $(FPCMADE)
+fpc_smart:
+	$(MAKE) all LINKSMART=1 CREATESMART=1
+fpc_debug:
+	$(MAKE) all DEBUG=1
+fpc_release:
+	$(MAKE) all RELEASE=1
+.SUFFIXES: $(EXEEXT) $(PPUEXT) $(OEXT) .pas .lpr .dpr .pp .rc .res
+$(COMPILER_UNITTARGETDIR):
+	$(MKDIRTREE) $(COMPILER_UNITTARGETDIR)
+$(COMPILER_TARGETDIR):
+	$(MKDIRTREE) $(COMPILER_TARGETDIR)
+%$(PPUEXT): %.pp
+	$(COMPILER) $<
+	$(EXECPPAS)
+%$(PPUEXT): %.pas
+	$(COMPILER) $<
+	$(EXECPPAS)
+%$(EXEEXT): %.pp
+	$(COMPILER) $<
+	$(EXECPPAS)
+%$(EXEEXT): %.pas
+	$(COMPILER) $<
+	$(EXECPPAS)
+%$(EXEEXT): %.lpr
+	$(COMPILER) $<
+	$(EXECPPAS)
+%$(EXEEXT): %.dpr
+	$(COMPILER) $<
+	$(EXECPPAS)
+%.res: %.rc
+	windres -i $< -o $@
+vpath %.pp $(COMPILER_SOURCEDIR) $(COMPILER_INCLUDEDIR)
+vpath %.pas $(COMPILER_SOURCEDIR) $(COMPILER_INCLUDEDIR)
+vpath %.lpr $(COMPILER_SOURCEDIR) $(COMPILER_INCLUDEDIR)
+vpath %.dpr $(COMPILER_SOURCEDIR) $(COMPILER_INCLUDEDIR)
+vpath %.inc $(COMPILER_INCLUDEDIR)
+vpath %$(OEXT) $(COMPILER_UNITTARGETDIR)
+vpath %$(PPUEXT) $(COMPILER_UNITTARGETDIR)
+.PHONY: fpc_shared
+override INSTALLTARGET+=fpc_shared_install
+ifndef SHARED_LIBVERSION
+SHARED_LIBVERSION=$(FPC_VERSION)
+endif
+ifndef SHARED_LIBNAME
+SHARED_LIBNAME=$(PACKAGE_NAME)
+endif
+ifndef SHARED_FULLNAME
+SHARED_FULLNAME=$(SHAREDLIBPREFIX)$(SHARED_LIBNAME)-$(SHARED_LIBVERSION)$(SHAREDLIBEXT)
+endif
+ifndef SHARED_LIBUNITS
+SHARED_LIBUNITS:=$(TARGET_UNITS) $(TARGET_IMPLICITUNITS)
+override SHARED_LIBUNITS:=$(filter-out $(INSTALL_BUILDUNIT),$(SHARED_LIBUNITS))
+endif
+fpc_shared:
+ifdef HASSHAREDLIB
+	$(MAKE) all CREATESHARED=1 LINKSHARED=1 CREATESMART=1
+ifneq ($(SHARED_BUILD),n)
+	$(PPUMOVE) -q $(SHARED_LIBUNITS) -i$(COMPILER_UNITTARGETDIR) -o$(SHARED_FULLNAME) -d$(COMPILER_UNITTARGETDIR)
+endif
+else
+	@$(ECHO) Shared Libraries not supported
+endif
+fpc_shared_install:
+ifneq ($(SHARED_BUILD),n)
+ifneq ($(SHARED_LIBUNITS),)
+ifneq ($(wildcard $(COMPILER_UNITTARGETDIR)/$(SHARED_FULLNAME)),)
+	$(INSTALL) $(COMPILER_UNITTARGETDIR)/$(SHARED_FULLNAME) $(INSTALL_SHAREDDIR)
+endif
+endif
 endif
 .PHONY: fpc_install fpc_sourceinstall fpc_exampleinstall
 ifdef INSTALL_UNITS
@@ -1505,13 +1633,13 @@ endif
 fpc_makefile_sub2: $(addsuffix _makefile_dirs,$(TARGET_DIRS) $(TARGET_EXAMPLEDIRS))
 fpc_makefile_dirs: fpc_makefile_sub1 fpc_makefile_sub2
 fpc_makefiles: fpc_makefile fpc_makefile_dirs
-all:
-debug:
-smart:
-release:
-units:
+all: fpc_all
+debug: fpc_debug
+smart: fpc_smart
+release: fpc_release
+units: fpc_units
 examples:
-shared:
+shared: fpc_shared
 install: fpc_install
 sourceinstall: fpc_sourceinstall
 exampleinstall: fpc_exampleinstall
@@ -1520,9 +1648,9 @@ zipinstall: fpc_zipinstall
 zipsourceinstall: fpc_zipsourceinstall
 zipexampleinstall: fpc_zipexampleinstall
 zipdistinstall: fpc_zipdistinstall
-clean:
-distclean:
-cleanall:
+clean: fpc_clean
+distclean: fpc_distclean
+cleanall: fpc_cleanall
 info: fpc_info
 makefiles: fpc_makefiles
 .PHONY: all debug smart release units examples shared install sourceinstall exampleinstall distinstall zipinstall zipsourceinstall zipexampleinstall zipdistinstall clean distclean cleanall info makefiles
