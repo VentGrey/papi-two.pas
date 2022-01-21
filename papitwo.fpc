@@ -30,7 +30,11 @@ var
     Res: string;
 
 begin
-    writeLn('Hola API');
+    if paramCount() < 1 then
+        begin
+            writeLn('Usage: ' + #10#10 + 'papitwo http://<rest_url>/' + #10);
+            exit;
+        end;
 end.
 
 
