@@ -1,4 +1,3 @@
-{$mode delphi}
 program PapiTwo;
 
 {
@@ -24,11 +23,25 @@ uses
     Classes,
     fphttpclient;
 
+{ Definiciones de funciones }
+
+{ Función para obtener un JSON }
+function UrlGet(Url: string): string;
+begin
+    with TFPHTTPClient.Create(nil) do
+    try
+        ReadUrl := Get(url);
+    finally
+        Free;
+    end;
+end;
+
 var
     { API url to evaluate (http only) }
     Url: string;
     { HTTP request result }
     Res: string;
+
 
 begin
     if paramCount() < 1 then
@@ -36,14 +49,6 @@ begin
             writeLn('Usage: ' + #10#10 + 'papitwo http://<rest_url>/' + #10);
             exit;
         end;
-
-    with TFPHttpClient.Create(Nil) do
-        try
-            Res := Get(ParamStr(1));
-        finally
-            Free;
-        end;
-    writeLn('GET: ', Res);
 end.
 
 
