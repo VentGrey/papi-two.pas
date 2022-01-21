@@ -24,29 +24,38 @@ uses
     Classes,
     fphttpclient;
 
+function GetUrl(url: string): string;
+begin
+with TFPHTTPClient.Create(nil) do
+    try
+        GetUrl:= Get(url);
+    finally
+        Free;
+    end;
+end;
+
+function PostUrl(url: string): string;
+begin
+    writeLn('Todo');
+end;
+
+
 var
     { API url to evaluate (http only) }
     Url: string;
     { HTTP request result }
     Res: string;
-
-
-{ Función para obtener un JSON }
-function GetUrl(url:string):string;
-begin
-with TFPHTTPClient.Create(nil) do
-try
-  ReadURL:= Get(url);
-finally
-  Free;
-end;
+    { Request header }
+    Header: string = 'application/json';
 
 begin
-    if paramCount() < 1 then
+    if paramCount() < 2 then
         begin
-            writeLn('Usage: ' + #10#10 + 'papitwo http://<rest_url>/' + #10);
+            writeLn('Usage: ' + 'papitwo <method> http://<rest_url>/' + #10);
             exit;
         end;
+
+
 end.
 
 
