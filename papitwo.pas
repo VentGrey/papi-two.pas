@@ -1,3 +1,4 @@
+{$mode delphi}
 program PapiTwo;
 
 {
@@ -35,6 +36,14 @@ begin
             writeLn('Usage: ' + #10#10 + 'papitwo http://<rest_url>/' + #10);
             exit;
         end;
+
+    with TFPHttpClient.Create(Nil) do
+        try
+            Res := Get(ParamStr(1));
+        finally
+            Free;
+        end;
+    writeLn('GET: ', Res);
 end.
 
 
