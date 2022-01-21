@@ -1,3 +1,4 @@
+{$MODE OBJFPC}
 program PapiTwo;
 
 {
@@ -23,25 +24,22 @@ uses
     Classes,
     fphttpclient;
 
-{ Definiciones de funciones }
-
-{ Función para obtener un JSON }
-function UrlGet(Url: string): string;
-begin
-    with TFPHTTPClient.Create(nil) do
-    try
-        ReadUrl := Get(url);
-    finally
-        Free;
-    end;
-end;
-
 var
     { API url to evaluate (http only) }
     Url: string;
     { HTTP request result }
     Res: string;
 
+
+{ Función para obtener un JSON }
+function GetUrl(url:string):string;
+begin
+with TFPHTTPClient.Create(nil) do
+try
+  ReadURL:= Get(url);
+finally
+  Free;
+end;
 
 begin
     if paramCount() < 1 then
