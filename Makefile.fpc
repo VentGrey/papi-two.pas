@@ -1,8 +1,0 @@
-[package]
-name=papi-two
-version=0.0.1
-
-[default]
-
-[compiler]
-options=-o3
