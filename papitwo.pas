@@ -1,61 +1,44 @@
-{$MODE OBJFPC} {$H+}
 program PapiTwo;
 
-{
-   Copyright (C) 2022  Purata Funes, Omar Jair <ventgrey@gmail.com>
-   Author: Purata Funes, Omar Jair <ventgrey@gmail.com>
-
-   This program is free software; you can redistribute it and/or
-   modify it under the terms of the GNU General Public License
-   as published by the Free Software Foundation; either version 2
-   of the License, or (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- }
+// Usar el modo ObjectFreePascal
+{$mode objfpc}{$H+}
 
 uses
-    SysUtils,
-    Classes,
-    fphttpclient;
-
-function GetUrl(url: string): string;
-begin
-with TFPHTTPClient.Create(nil) do
-    try
-        GetUrl:= Get(url);
-    finally
-        Free;
-    end;
-end;
-
-function PostUrl(url: string): string;
-begin
-    writeLn('Todo');
-end;
-
+Classes, SysUtils, fpjson, jsonparser;
 
 var
-    { API url to evaluate (http only) }
-    Url: string;
-    { HTTP request result }
-    Res: string;
-    { Request header }
-    Header: string = 'application/json';
+   URL            : string; // URL de la REST API a consumir.
+   OutputFile     : string; // Nombre del archivo de salida.
+   SaveToFile     : boolean; // Indica si se debe guardar en un archivo.
+   JSONResponse   : TJSONData; // JSON que contiene la respuesta de la API.
+   ResponseStream : TStringStream; // Stream que tiene la respuesta de la API.
+   HttpClient     : TFPHTTPClient; // Cliente HTTP para consumir la API.
 
 begin
-    if paramCount() < 2 then
-        begin
-            writeLn('Usage: ' + 'papitwo <method> http://<rest_url>/' + #10);
-            exit;
+   URL := 'http://localhost:8090';
+   OutputFile := 'response.json';
+   SaveToFile := true;
+   HttpClient := TFPHTTPClient.Create(nil);
+
+   // Excepciones para evitar un cagadero de red
+   try
+   ResponseStream := TStringStream.Create(HttpClient.Get(URL));
+   try
+   JSONResponse := GetJSON(ResponseStream.DataString);
+
+   if SaveToFile then
+   begin
+      JSONResponse.SaveToFile(OutputFile);
+      writeln('Archivo guardado en: ', OutputFile);
+   end
+   else
+       begin
+           writeln(JSONResponse.AsJSON);
         end;
-
-
+   finally
+       ResponseStream.Free;
+    end;
+    finally
+        HttpClient.Free;
+    end;
 end.
-
-
