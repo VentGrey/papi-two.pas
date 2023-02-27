@@ -1,12 +1,16 @@
 pc=fpc
 PFLAGS=-O3 -opapitwo
+SRC=papitwo.pas
+EXE=papitwo
 
 build:
-	$(pc) $(PFLAGS) papitwo.pas
+	$(pc) $(PFLAGS) $(SRC)
 
-run:
-	./papitwo
+run: $(EXE)
+	./$(EXE)
+
+$(EXE): $(SRC)
+	$(pc) $(PFLAGS) $(SRC)
 
 clean:
-	rm papitwo.o papitwo
-
+	rm -f $(EXE) *.o
