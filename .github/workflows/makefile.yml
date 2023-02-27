@@ -1,0 +1,30 @@
+name: OS Build CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Free Pascal
+        run: |
+          sudo apt install fpc -y
+
+      - name: Build
+        run: |
+          fpc -O4 -opapitwo papitwo.pas
+
+      - name: Test
+        run: |
+          ./papitwo https://api.zippopotam.us/us/24724 output.json
