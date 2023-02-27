@@ -1,5 +1,5 @@
 pc=fpc
-PFLAGS=-O3 -opapitwo
+PFLAGS=-O4 -opapitwo
 SRC=papitwo.pas
 EXE=papitwo
 
