@@ -4,7 +4,7 @@ program PapiTwo;
 {$mode objfpc}{$H+}
 
 uses
-Classes, SysUtils, fpjson, jsonparser;
+    Classes, SysUtils, fpjson, jsonparser, fphttpclient;
 
 var
    URL            : string; // URL de la REST API a consumir.
@@ -15,30 +15,49 @@ var
    HttpClient     : TFPHTTPClient; // Cliente HTTP para consumir la API.
 
 begin
-   URL := 'http://localhost:8090';
-   OutputFile := 'response.json';
-   SaveToFile := true;
+   // Leer los parámetros de la línea de comandos.
+   if ParamCount < 1 then
+      begin
+         writeln('Uso: ', ParamStr(0), ' URL [Archivo]');
+         halt(1);
+      end;
+   end.
+
+   // Asignar URL al valor del primer parámetro.
+   URL := ParamStr(1);
+
+   // Argumentos con dependencia. (OutputFile depende de SaveToFile)
+   if ParamCount > 1 then
+      begin
+         OutputFile := ParamStr(2);
+         SaveToFile := true;
+      end
+   else
+      begin
+         SaveToFile := false;
+   end;
+
    HttpClient := TFPHTTPClient.Create(nil);
 
    // Excepciones para evitar un cagadero de red
-   try
+  try
    ResponseStream := TStringStream.Create(HttpClient.Get(URL));
    try
-   JSONResponse := GetJSON(ResponseStream.DataString);
+    JSONResponse := GetJSON(ResponseStream.DataString);
 
    if SaveToFile then
-   begin
-      JSONResponse.SaveToFile(OutputFile);
-      writeln('Archivo guardado en: ', OutputFile);
-   end
-   else
-       begin
-           writeln(JSONResponse.AsJSON);
-        end;
-   finally
-       ResponseStream.Free;
-    end;
+      begin
+        JSONResponse.SaveToFile(OutputFile);
+        writeln('Archivo guardado en: ', OutputFile);
+      end
+      else
+      begin
+        writeln(JSONResponse.AsJSON);
+      end;
     finally
-        HttpClient.Free;
+      ResponseStream.Free;
     end;
+  finally
+    HttpClient.Free;
+  end;
 end.
